@@ -1,0 +1,83 @@
+.lpDynamicGallery {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0, .9);
+}
+
+.lpDynamicGallery .close {
+    position: absolute;
+    right: 10px;
+    top: 10px;
+    cursor:pointer;
+    width: 40px;
+    z-index: 99999;
+}
+
+.close img {
+    width: 100%
+}
+
+.lpDynamicGallery .controls img {
+    height: 130px;
+}
+
+.lpDynamicGallery .controls {
+    position: absolute;
+    top: 50%;
+    margin-top: -65px;
+    cursor: pointer;
+}
+
+.lpDynamicGallery #prev {
+    left: 0;
+}
+
+.lpDynamicGallery #next {
+    right: 0;
+}
+
+
+.lpDynamicGallery .title {
+    text-align: center;
+    position: relative;
+    color:white;
+    font-size:20px;
+    font-weight:bold;
+    line-height:55px;
+}
+.lpDynamicGallery .title a {
+    color:white;
+    text-decoration:none;
+}
+.lpDynamicGallery .container {
+    height:100%;
+}
+.lpDynamicGallery .images {
+    display: table;
+    width: 70%;
+    overflow:hidden;
+    vertical-align:middle;
+    margin:0 auto;
+    height:100%;
+}
+
+.lpDynamicGallery .images .wrapper{
+    position:relative;
+    display:table-cell;
+    height:100%;
+    vertical-align:middle;
+    overflow:hidden;
+    padding-bottom:50px;
+}
+
+.lpDynamicGallery .images img {
+    display:block;
+    margin:0 auto;
+    max-width:100%;
+
+}
