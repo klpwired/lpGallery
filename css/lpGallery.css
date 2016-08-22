@@ -9,13 +9,52 @@
     background-color: rgba(0,0,0, .9);
 }
 
+.lpDynamicGallery .imagesContainer{
+    position: fixed;
+    top: 60px;
+    bottom: 20px;
+    left: 100px;
+    right: 100px;
+    overflow: hidden;
+}
+
+.lpDynamicGallery .navigation{
+    position: relative;
+    top: 10px;
+}
+
 .lpDynamicGallery .close {
+    transform: rotate(45deg);
     position: absolute;
     right: 10px;
-    top: 10px;
     cursor:pointer;
     width: 40px;
     z-index: 99999;
+}
+
+.lpDynamicGallery .Prevloader{
+    width: 29px;
+    position: absolute;
+    height: auto !important;
+    bottom: 58px;
+    left: 80px;
+}
+
+.lpDynamicGallery .Nextloader{
+    width: 29px;
+    position: absolute;
+    height: auto !important;
+    bottom: 58px;
+    right: 80px;
+}
+
+.lpDynamicGallery .wrapperLoader{
+    position: absolute;
+    width: 50px;
+    left: 50%;
+    top: 50%;
+    margin-left: -50px;
+    margin-top: -50px;
 }
 
 .close img {
@@ -58,12 +97,11 @@
     height:100%;
 }
 .lpDynamicGallery .images {
+    width: 100%;
     display: table;
-    width: 70%;
-    overflow:hidden;
-    vertical-align:middle;
-    margin:0 auto;
-    height:100%;
+    vertical-align: middle;
+    margin: 0 auto;
+    height: 100%;
 }
 
 .lpDynamicGallery .images .wrapper{
@@ -76,8 +114,9 @@
 }
 
 .lpDynamicGallery .images img {
+    position: relative;
     display:block;
     margin:0 auto;
-    max-width:100%;
+    /* max-height:85%;*/
 
 }

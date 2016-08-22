@@ -1,0 +1,10 @@
+.main .wrapper{
+    width: 350px;
+    height: 200px;
+    display: inline-block;
+    overflow: hidden;
+}
+
+.main img{
+    width: 350px;
+}

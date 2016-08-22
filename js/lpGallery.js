@@ -1,26 +1,53 @@
 /**
- *
- * @param data
  * @constructor
+ * @param {int} data.items[].id - id of item
+ * @param {string} data.items[].src - src of Img
+ * @param {string} data.items[].title - title of Img
+ * @param {string} data.items[].link - link above the Img
+ * @param {string} data.imgFolder - overwrite default Images folder
+ * @param {string} data.thumbs - selectors of your thumbnails. Example: '.post_thumbnail img, .content_wrapper img'
  */
 var Gallery = function (data) {
-    this.limit = data.limit || 3;
-    this.postId = data.postId;
-    this.cnt = 0;
+    var items = (typeof data.items == "undefined" && typeof data.thumbs != "undefined") ? this.initFromDom(data.thumbs) : data.items;
+    this.thumbs = data.thumbs;
+    this.linkedList = new LinkedList(items);
+    this.imgFolder = data.imgFolder || "images";
+    this.loading = false;
     this.status = false;
+    this.slide_prev = true;
+    this.slide_next = true;
     this.callbackLeft = null;
     this.callbackRight = null;
-    this.lastId = false;
-    this.firstId = false;
-    this.current = false;
-    this.linkedList = null;
-    this.thumbs = $('.post_thumbnail img, .content_wrapper img');
+    this.wrapperLoader = $('<img>', {
+        src: this.imgFolder + "/loading.gif",
+        alt: "loading..",
+        class: "wrapperLoader" }
+    );
     var _this = this;
 
+    // bind close event
     $(document).on('click', '.lpDynamicGallery .close', function () {
         _this.close();
     });
 
+    // bind prev event
+    $(document).on('click', '.lpDynamicGallery #prev:not(load)', function () {
+        _this.prev();
+    });
+
+    // bind next event
+    $(document).on('click', '.lpDynamicGallery #next:not(load)', function () {
+        _this.next();
+    });
+
+    // bind open event
+    $(document).on('click', this.thumbs, function(){
+        var id = $(this).data('id');
+        var slide = _this.linkedList.getNodeById(id).data;
+        _this.open(slide, _this);
+    });
+
+    // bind keyboard buttons to navigate gallery
     $(document).keydown(function(e){
         if(_this.status){
             switch(e.keyCode){
@@ -30,213 +57,219 @@ var Gallery = function (data) {
             }
         }
     });
-
-    $(document).on('click', '.lpDynamicGallery #prev', function () {
-        _this.prev();
-    });
-
-    $(document).on('click', '.lpDynamicGallery #next', function () {
-        _this.next();
-    });
-
-    this.init();
 };
 
-Gallery.prototype.init = function () {
-    var _this = this;
-    $.ajax({
-        url: 'gallery/getimages',
-        method: 'POST',
-        data: {
-            limit: _this.limit,
-            postId: _this.postId
-        },
-        success: function (data) {
-            data.sort(function(a,b){
-                return b.post_id - a.post_id;
-            });
-
-            var j = 0, list = [];
-            _this.firstId = data[0].post_id;
-            _this.lastId = data[data.length-1].post_id;
-            _this.callbackLeft = data[1].post_id;
-            _this.callbackRight = data[data.length-2].post_id;
-
-            for (var id in data) {
-                var images = data[id].postsImages;
-                var postId = data[id].post_id;
-                for(var imageId in images){
-                    var image = images[imageId];
-                    var item = {
-                        id: _this.cnt,
-                        src: image.image_original,
-                        title: image.title,
-                        link: data[id].link
-                    };
-                    if(postId == _this.callbackLeft){
-                        item.callbackLeft = _this.addPrev;
-                        _this.callbackLeft = null;
-                    }
-                    if(postId == _this.callbackRight){
-                        item.callbackRight = _this.addNext;
-                        _this.callbackRight = null;
-                    }
-                    if(postId == _this.postId){
-                        $(_this.thumbs[j++]).attr('data-id', _this.cnt);
-                    }
-
-                    list.push(item);
-
-                    _this.cnt++;
-                }
-            }
-
-            _this.linkedList = new LinkedList(list);
-
-            $(document).on('click', '.post_thumbnail img, .content_wrapper img', function(){
-                var id = $(this).data('id');
-                var slide = _this.linkedList.getNodeById(id).data;
-                _this.open(slide, _this);
-            });
-
-        }
+/**
+ *
+ * @param {string} thumbs
+ * @return {object[]}
+ * @description initialize gallery from DOM
+ */
+Gallery.prototype.initFromDom = function(thumbs){
+    var list = [];
+    $.each($(thumbs), function(id, thumb){
+        $(thumb).data('id', id).css('cursor', 'pointer');
+        list.push({
+            id: id,
+            src: $(thumb).attr('src'),
+            title: $(thumb).attr('title')
+        });
     });
+    return list;
 };
 
+/**
+ * @method
+ * @param {object[]} list - array of objects
+ * @param {string} list[].src - src of Img
+ * @param {string} list[].title - title of Img
+ * @param {string} list[].link - link above the Img
+ * @description removing previous left callback, prepend objects to linked list
+ */
+Gallery.prototype.prepend = function(list){
+    this.linkedList.iterate(this.removeCallbackLeft); // removing previous left callback
+    this.linkedList.addBefore(list); // prepend photos to linked list
+};
+
+/**
+ * @method
+ * @param {object[]} list - array of objects
+ * @param {string} list[].src - src of Img
+ * @param {string} list[].title - title of Img
+ * @param {string} list[].link - link above the Img
+ * @description removing previous right callback, append objects to linked list
+ */
+Gallery.prototype.append = function(list){
+    this.linkedList.iterate(this.removeCallbackRight); // removing previous right callback
+    this.linkedList.addAfter(list); // append photos to linked list
+};
+
+/**
+ * @method
+ * @param {string} direction - could be 'prev' or 'next'
+ * @description toggle loader
+ */
+Gallery.prototype.toggleLoader = function(direction){
+    var selector = '#'+direction;
+    $(selector).toggleClass('load');
+    this.loading = !this.loading;
+    if(!$(selector).hasClass('load')){
+        this['slide_' + direction] = true;
+    }
+};
+
+/**
+ * @method
+ * @param {string} direction - could be 'prev' or 'next'
+ * @description hide arrow in case of given direction
+ */
+Gallery.prototype.hideArrow = function(direction){
+    var selector = '#'+direction;
+    $(selector).stop().fadeOut('slow');
+    this['slide_' + direction] = false;
+};
+
+/**
+ * @method
+ * @param {string} direction - could be 'prev' or 'next'
+ * @description show arrow in case of given direction
+ */
+Gallery.prototype.showArrow = function(direction){
+    var selector = '#'+direction;
+    $(selector).stop().fadeIn('slow');
+    this['slide_' + direction] = true;
+};
+
+/**
+ * @method
+ * @description change photo to previous one, call callback function, if needed
+ */
 Gallery.prototype.prev = function () {
-    var prev = this.linkedList.getPrev().data;
-    this.setSlide(prev);
-    if(typeof prev.callbackLeft != "undefined"){
-        prev.callbackLeft.call(this);
+    if(this.slide_prev){
+        // get previous object from list
+        var prev = this.linkedList.getPrev().data;
+        // set slide
+        this.setSlide(prev);
+        // call callback if needed
+        if(typeof prev.callbackLeft != "undefined") prev.callbackLeft.call(this);
+        // hide arrow if no more left slides and no loading
+        if(!this.linkedList.hasPrev() && !this.loading) this.hideArrow('prev');
+        if(!this.slide_next) this.showArrow('next');
     }
 };
 
+/**
+ * @method
+ * @description change photo to next one, call callback function, if needed
+ */
 Gallery.prototype.next = function () {
-    var next = this.linkedList.getNext().data;
-    this.setSlide(next);
-    if(typeof next.callbackRight != "undefined"){
-        next.callbackRight.call(this);
+    if(this.slide_next){
+        // get next object from list
+        var next = this.linkedList.getNext().data;
+        // set slide
+        this.setSlide(next);
+        // call callback if needed
+        if(typeof next.callbackRight != "undefined") next.callbackRight();
+        // hide arrow if no more left slides and no loading
+        if(!this.linkedList.hasNext() && !this.loading) this.hideArrow('next');
+        if(!this.slide_prev) this.showArrow('prev');
     }
 };
 
-Gallery.prototype.addPrev = function (){
-    this.linkedList.iterate(this.removeCallbackLeft);
-    var _this = this;
-    $.ajax({
-        url: 'gallery/getprevimages',
-        method: 'POST',
-        dataType: 'json',
-        data: {
-            limit: _this.limit,
-            postId: _this.firstId
-        },
-        success: function (data) {
-            var list = [];
-            _this.callbackLeft = data[data.length-2].post_id;
-            _this.firstId = data[data.length-1].post_id;
-
-            for (var id in data) {
-                var images = data[id].postsImages;
-                var postId = data[id].post_id;
-                for(var imageId in images){
-                    var image = images[imageId];
-                    var item = {
-                        id: _this.cnt,
-                        src: image.image_original,
-                        title: image.title,
-                        link: data[id].link
-                    };
-
-                    if(postId == _this.callbackLeft){
-                        item.callbackLeft = _this.addPrev;
-                        _this.callbackLeft = null;
-                    }
-
-                    list.push(item);
-
-                    _this.cnt++;
-                }
-            }
-
-            _this.linkedList.addBefore(list);
-        }
-    });
-};
-
-Gallery.prototype.addNext = function (){
-    this.linkedList.iterate(this.removeCallbackRight);
-    var _this = this;
-    $.ajax({
-        url: 'gallery/getnextimages',
-        method: 'POST',
-        dataType: 'json',
-        data: {
-            limit: _this.limit,
-            postId: _this.lastId
-        },
-        success: function (data) {
-            var list = [];
-            _this.callbackRight = data[data.length-2].post_id;
-            _this.lastId = data[data.length-1].post_id;
-
-            for (var id in data) {
-                var images = data[id].postsImages;
-                var postId = data[id].post_id;
-                for(var imageId in images){
-                    var image = images[imageId];
-                    var item = {
-                        id: _this.cnt,
-                        src: image.image_original,
-                        title: image.title,
-                        link: data[id].link
-                    };
-
-                    if(postId == _this.callbackRight){
-                        item.callbackRight = _this.addNext;
-                        _this.callbackRight = null;
-                    }
-
-                    list.push(item);
-
-                    _this.cnt++;
-                }
-            }
-
-            _this.linkedList.addAfter(list);
-        }
-    });
-};
-
+/**
+ * @method
+ * @param {Node} node - instance of Node object
+ * @description remove left callback from Node.data object
+ */
 Gallery.prototype.removeCallbackLeft = function(node){
     delete node.data.callbackLeft;
 };
 
+/**
+ * @method
+ * @param {Node} node - instance of Node object
+ * @description remove right callback from Node.data object
+ */
 Gallery.prototype.removeCallbackRight = function(node){
     delete node.data.callbackRight;
 };
 
+/**
+ * @method
+ * @param {Node.data} slide
+ * @description set the slide, resize it to the window
+ */
 Gallery.prototype.setSlide = function(slide){
+    var imageContainer = $('.imagesContainer'),
+        wrapper = $('.lpDynamicGallery .wrapper'),
+        image = $('.lpDynamicGallery .images .wrapper img'),
+        title = $('.lpDynamicGallery .title');
+
+    // set link
     $('.lpDynamicGallery .title a').prop({
-        href: slide.link,
-        text: slide.title
+        href: slide.link || "",
+        text: slide.title || ""
     });
-    $('.lpDynamicGallery .images .wrapper img').attr({
+    // set image
+    image.attr({
         src: slide.src,
         alt: slide.title
     });
+
+    // resize slide
+    Photo.resize({
+        photo: image,
+        width: imageContainer.width(),
+        height: imageContainer.height() - title.height(),
+        beforeResize: (function (_this) {
+            return function(){
+                wrapper.hide();
+                imageContainer.append(_this.wrapperLoader);
+            }
+        })(this),
+        afterResize: (function (_this) {
+            return function(){
+                imageContainer.find(_this.wrapperLoader).remove();
+                wrapper.show();
+            }
+        })(this)
+    });
+
 };
 
+/**
+ * @param {Node.data} slide
+ * @param {Gallery} _this - link to the Gallery instance
+ * @description open gallery with passed slide
+ */
 Gallery.prototype.open = function (slide, _this) {
-    _this.setSlide(slide);
+    $('body').css('overflow-y', 'hidden');
     _this.status = true;
-    $('.lpDynamicGallery').fadeIn('slow');
+
+    $('.lpDynamicGallery').fadeIn('fast');
+
+    $('#prev').css('display', _this.slide_prev ? "" : "none");
+    $('#next').css('display', _this.slide_next ? "" : "none");
+
+    _this.setSlide(slide);
 };
 
+/**
+ * @method
+ * @description close gallery
+ */
 Gallery.prototype.close = function () {
     this.status = false;
-    $('.lpDynamicGallery').fadeOut('slow');
+    $('.lpDynamicGallery').fadeOut('fast');
+    this.showArrow('prev');
+    this.showArrow('next');
+    $('body').css('overflow-y', 'auto');
 };
 
+/**
+ * @constructor create LinkedList instance
+ * @param {Object[]} data - array of slides
+ */
 var LinkedList = function(data){
     this.current = false;
 
@@ -256,6 +289,11 @@ var LinkedList = function(data){
     }
 };
 
+/**
+ * @method
+ * @param {int} id
+ * @description search for node with data.id == id
+ */
 LinkedList.prototype.getNodeById = function(id){
     var current = this.getFirst();
     while(current.data.id != id){
@@ -265,14 +303,27 @@ LinkedList.prototype.getNodeById = function(id){
     return current;
 };
 
+/**
+ * @method
+ * @description set current to the first node
+ */
 LinkedList.prototype.toBegin = function(){
     while(this.prev()){}
 };
 
+/**
+ * @method
+ * @description set current to the last node
+ */
 LinkedList.prototype.toEnd = function(){
     while(this.next()){}
 };
 
+/**
+ * @method
+ * @description set current to the first node
+ * @return {Node} first node
+ */
 LinkedList.prototype.getFirst = function () {
     var current = this.current;
     while(current.prev !== null){
@@ -281,15 +332,23 @@ LinkedList.prototype.getFirst = function () {
     return current;
 };
 
+/**
+ * @method
+ * @description set current to the last node
+ * @return {Node} last node
+ */
 LinkedList.prototype.getLast = function () {
     var current = this.current;
     while(current.next !== null){
         current = current.next;
     }
     return current;
-
 };
 
+/**
+ * @method
+ * @description print all the list from 1st element to console
+ */
 LinkedList.prototype.print = function(){
     var i = 0, current = this.getFirst();
     while(current !== null){
@@ -298,6 +357,18 @@ LinkedList.prototype.print = function(){
     }
 };
 
+/**
+ * @method
+ * @return {boolean}
+ */
+LinkedList.prototype.hasPrev = function(){
+    return this.current.prev !== null;
+};
+
+/**
+ * @method
+ * @return {Node|boolean}
+ */
 LinkedList.prototype.getPrev = function () {
     if(this.current.prev !== null){
         return this.current = this.current.prev;
@@ -305,6 +376,11 @@ LinkedList.prototype.getPrev = function () {
     return false;
 };
 
+/**
+ * @method
+ * @description set prev node as current
+ * @return {boolean}
+ */
 LinkedList.prototype.prev = function(){
     if(this.current.prev !== null){
         this.current = this.current.prev;
@@ -313,6 +389,18 @@ LinkedList.prototype.prev = function(){
     return false;
 };
 
+/**
+ * @method
+ * @return {boolean}
+ */
+LinkedList.prototype.hasNext = function(){
+    return this.current.next !== null;
+};
+
+/**
+ * @method
+ * @return {Node|boolean}
+ */
 LinkedList.prototype.getNext = function () {
     if(this.current.next !== null){
         return this.current = this.current.next;
@@ -320,6 +408,11 @@ LinkedList.prototype.getNext = function () {
     return false;
 };
 
+/**
+ * @method
+ * @description set next node as current
+ * @return {boolean}
+ */
 LinkedList.prototype.next = function(){
     if(this.current.next !== null){
         this.current = this.current.next;
@@ -328,10 +421,19 @@ LinkedList.prototype.next = function(){
     return false;
 };
 
+/**
+ * @method
+ * @return {boolean}
+ */
 LinkedList.prototype.isEmpty = function () {
     return this.current != false;
 };
 
+/**
+ * @method
+ * @param {object} data
+ * @description create Node objects from data, prepend them to list
+ */
 LinkedList.prototype.addBefore = function (data) {
 
     var current = this.getFirst();
@@ -344,6 +446,11 @@ LinkedList.prototype.addBefore = function (data) {
     current.prev = null;
 };
 
+/**
+ * @method
+ * @param {object} data
+ * @description create Node objects from data, prepend them to list
+ */
 LinkedList.prototype.addAfter = function (data) {
 
     var current = this.getLast();
@@ -356,6 +463,11 @@ LinkedList.prototype.addAfter = function (data) {
     current.next = null;
 };
 
+/**
+ * @method
+ * @param {object} data
+ * @return {object} data without 1st element
+ */
 LinkedList.prototype.addFirst = function (data) {
 
     this.current = new Node(data.shift());
@@ -364,6 +476,11 @@ LinkedList.prototype.addFirst = function (data) {
     return data;
 };
 
+/**
+ * @method
+ * @param {callback} callback - function to call at each node
+ * @description iterates over nodes, execute callback function for each node
+ */
 LinkedList.prototype.iterate = function(callback){
     var current = this.getFirst();
     while(current.next != null){
@@ -372,9 +489,66 @@ LinkedList.prototype.iterate = function(callback){
     }
 };
 
+/**
+ * @constructor
+ * @param {object} data
+ */
 var Node = function (data) {
-    this.data = false;
+    this.data = data;
     this.next = null;
     this.prev = null;
-    this.data = data;
+};
+
+var Photo = {
+    /**
+     * @static
+     * @method
+     * @param {object} data.photo - Photo
+     * @param {int} data.width - Container width
+     * @param {int} data.height - Container height
+     * @param {callback} data.beforeResize - called before resize
+     * @param {callback} data.afterResize - called after resize
+     * @description resize photo to window
+     */
+    resize: function(data) {
+        var photo = data.photo,
+            width = data.width,
+            height = data.height,
+            beforeResize = data.beforeResize,
+            afterResize = data.afterResize;
+
+        beforeResize();
+
+        if(photo.attr('src')=='') return;
+        var newImg = new Image();
+        newImg.src = photo.attr('src');
+
+        newImg.onload = function() {
+            var heightPhoto = newImg.height;
+            var widthPhoto = newImg.width;
+            var left;
+            if(heightPhoto < height && widthPhoto < width){
+                width = widthPhoto;
+                height = heightPhoto;
+                left = 0;
+            }else{
+                var newWidth = widthPhoto/(heightPhoto/height);
+                var newHeight = heightPhoto/(widthPhoto/width);
+
+                width = newWidth > width ? width : newWidth;
+                height = newHeight > height ? height : newHeight;
+                left = newWidth > width ? 0 : -(newWidth-width)/2;
+            }
+
+            photo.css({
+                "height": height,
+                'width': width,
+                'left': left,
+                'position': 'relative',
+                'display': 'block'
+            });
+
+            afterResize();
+        }
+    }
 };
