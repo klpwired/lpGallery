@@ -1,0 +1,26 @@
+{
+  "scripts": {
+    "serve": "cross-env NODE_ENV=development webpack-dev-server --hot --inline --port 8888",
+    "build": "cross-env NODE_ENV=production webpack --progress --colors",
+    "build-analyze": "cross-env WEBPACK_ANALYZE_BUNDLE=true npm run build"
+  },
+  "devDependencies": {
+    "extract-text-webpack-plugin": "^2.1.0",
+    "babel-core": "^6.23.1",
+    "babel-loader": "^6.4.0",
+    "babel-plugin-syntax-dynamic-import": "^6.18.0",
+    "babel-polyfill": "^6.23.0",
+    "babel-preset-latest": "^6.22.0",
+    "babel-preset-stage-3": "^6.22.0",
+    "webpack": "^2.3.2",
+    "css-loader": "^0.27.1",
+    "css-raw-loader": "^0.1.1",
+    "node-sass": "^4.5.0",
+    "sass-loader": "^6.0.3",
+    "style-loader": "^0.16.0",
+    "dotenv": "^4.0.0",
+    "cross-env": "^3.2.3",
+    "webpack-bundle-analyzer": "^2.3.1",
+    "webpack-dev-server": "^2.4.1"
+  }
+}

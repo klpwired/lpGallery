@@ -3,15 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <title>demo</title>
-    <link rel="stylesheet" type="text/css" href="css/lpGallery.css">
-    <link rel="stylesheet" type="text/css" href="css/style.css">
-    <script type="text/javascript" src="js/lpGallery.js"></script>
-    <script type="text/javascript" src="js/main.js"></script>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <script type="text/javascript" src="dist/js/jquery-2.2.0.min.js"></script>
+    <script type="text/javascript" src="dist/js/app.js"></script>
 </head>
 <body>
     <div class="main">
-        <div class="wrapper"><img src="images/gallery/strange-1440x900.jpg" alt="strange"></div>
+        <div class="wrapper"><img src="images/gallery/strange-1440x900.jpg" alt="strange" title="strange" data-href="https://www.google.com"></div>
         <div class="wrapper"><img src="images/gallery/deadshot-1280x800.jpg" alt="deadshot"></div>
         <div class="wrapper"><img src="images/gallery/space-750x1334.jpg" alt="space"></div>
         <div class="wrapper"><img src="images/gallery/tower-750x1334.jpg" alt="tower"></div>
@@ -45,17 +42,7 @@
 
     <script>
         var thumbs = '.main .wrapper img';
-        var list = [];
-        /*$.each($(thumbs), function(id, thumb){
-            $(thumb).data('id', id).css('cursor', 'pointer');
-            list.push({
-                id: id,
-                src: $(thumb).attr('src'),
-                title: $(thumb).attr('title'),
-                link: "google.ru"
-            });
-        });*/
-        var gallery = new Gallery({
+        var gallery = new DynamicGallery({
             thumbs: thumbs
         });
     </script>
